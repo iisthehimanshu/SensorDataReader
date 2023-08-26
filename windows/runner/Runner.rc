@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "sensor_reader_prototype" "\0"
+            VALUE "FileDescription", "sensor_reader_prototype_websocket" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "sensor_reader_prototype" "\0"
+            VALUE "InternalName", "sensor_reader_prototype_websocket" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2023 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "sensor_reader_prototype.exe" "\0"
-            VALUE "ProductName", "sensor_reader_prototype" "\0"
+            VALUE "OriginalFilename", "sensor_reader_prototype_websocket.exe" "\0"
+            VALUE "ProductName", "sensor_reader_prototype_websocket" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

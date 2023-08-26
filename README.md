@@ -1,4 +1,4 @@
-# sensor_reader_prototype
+# sensor_reader_prototype_websocket
 
 A new Flutter project.
 

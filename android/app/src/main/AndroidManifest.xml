@@ -1,11 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+
+
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+
     <application
-        android:label="sensor_reader_prototype"
+        android:label="sensor_reader_prototype_websocket"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <service android:name="BluetoothHandler" android:exported="false"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

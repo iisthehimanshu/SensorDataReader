@@ -1,44 +1,51 @@
+import 'package:flutter/material.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:light/light.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:pedometer/pedometer.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'bluetooth_scanner.dart';
 
-
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    const title = 'Sensor Data';
     return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Sensors Demo',
-      home: MyHomePage(title: ''),
+      title: title,
+      home: MyHomePage(
+        title: title,
+      ),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, this.title}) : super(key: key);
+  const MyHomePage({
+    super.key,
+    required this.title,
+  });
 
-  final String? title;
-
-
+  final String title;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
+  final TextEditingController _controller = TextEditingController();
+  final _channel = WebSocketChannel.connect(
+    Uri.parse('ws://192.168.0.103:8080'),
+  );
   List<double>? _accelerometerValues;
   List<double>? _gyroscopeValues;
   List<double>? _magnetometerValues;
@@ -55,9 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
   double compassValue = 0.0;
   late Stream<StepCount> _stepCountStream;
   String  _steps = '?';
-  var link = "http://10.0.2.2:8080";
-
-  int backAndForth = 0;
+  final BluetoothDeviceScanner _scanner = BluetoothDeviceScanner();
 
   @override
   void initState() {
@@ -93,6 +98,19 @@ class _MyHomePageState extends State<MyHomePage> {
     startListening();
     startCompassStream();
     initPlatformState();
+    requestBluetoothConnectPermission();
+    _scanner.scanForDevices();
+  }
+
+
+  Future<void> requestBluetoothConnectPermission() async {
+    final PermissionStatus permissionStatus = await Permission.bluetoothConnect.request();
+
+    if (permissionStatus.isGranted) {
+      // Permission granted, you can now perform Bluetooth operations
+    } else {
+      // Permission denied, handle accordingly
+    }
   }
 
   checkGps() async {
@@ -172,10 +190,11 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> startCompassStream() async {
     StreamSubscription<CompassEvent> compassSubscription;
 
-    compassSubscription = FlutterCompass.events!.listen((CompassEvent event) {
+    compassSubscription = FlutterCompass.events!.listen((CompassEvent event){
       setState(() {
         compassValue = event.heading!;
       });
+      _sendMessage();
     });
   }
   void onStepCount(StepCount event) {
@@ -200,6 +219,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+
     final accelerometer =
     _accelerometerValues?.map((double v) => v.toStringAsFixed(1)).toList();
     final gyroscope =
@@ -208,202 +228,122 @@ class _MyHomePageState extends State<MyHomePage> {
     _magnetometerValues?.map((double v) => v.toStringAsFixed(1)).toList();
 
 
-    Future<void> sendGyroDataToServer() async {
-      var adres = '/gyro/receive-data';
-      final url = link+adres;
-      final headers = {'Content-Type': 'application/json'};
-      final body = jsonEncode(gyroscope);
-
-      final response = await http.post(Uri.parse(url), headers: headers, body: body);
-
-      if (response.statusCode == 200) {
-        print('Gyro data sent successfully');
-      } else {
-        print('Error sending Gyro data: ${response.statusCode}');
-      }
-    }
-
-    Future<void> sendACCDataToServer() async {
-      var adres = '/acc/receive-data';
-      final url = link+adres;
-      final headers = {'Content-Type': 'application/json'};
-      final body = jsonEncode(accelerometer);
-
-      final response = await http.post(Uri.parse(url), headers: headers, body: body);
-
-      if (response.statusCode == 200) {
-        print('Acc data sent successfully');
-      } else {
-        print('Error sending ACC data: ${response.statusCode}');
-      }
-    }
-
-    Future<void> sendMagDataToServer() async {
-      var adres = '/mag/receive-data';
-      final url = link+adres;
-      final headers = {'Content-Type': 'application/json'};
-      final body = jsonEncode(magnetometer);
-
-      final response = await http.post(Uri.parse(url), headers: headers, body: body);
-
-      if (response.statusCode == 200) {
-        print('Mag data sent successfully');
-      } else {
-        print('Error sending Mag data: ${response.statusCode}');
-      }
-    }
-
-    Future<void> sendLocDataToServer() async {
-      var adres = '/loc/receive-data';
-      final url = link+adres;
-      final headers = {'Content-Type': 'application/json'};
-      final body = jsonEncode({
-        'latitude': position.latitude.toString(),
-        'longitude': position.longitude.toString(),
-      });
-      final response = await http.post(Uri.parse(url),
-          headers: headers,
-          body: body);
-      if (response.statusCode == 200) {
-        print('Loc data sent successfully');
-      } else {
-        print('Error sending Loc data: ${response.statusCode}');
-      }
-    }
-
-    Future<void> sendLuxDataToServer(String value) async {
-      var adres = '/lux/receive-data';
-      final url = link+adres;
-      var urlParse = Uri.parse(url);
-      final response = await http.post(urlParse, body: {'Lux_Intensity': value});
-
-      if (response.statusCode == 200) {
-        print('Ambient data sent successfully');
-      } else {
-        print('Failed to send Ambient data to server : ${response.statusCode}');
-      }
-    }
-
-    Future<void> sendCompassDataToServer(double value) async {
-      var adres = '/compass/receive-data';
-      final url = link+adres;
-      var urlParse = Uri.parse(url);
-      final response = await http.post(urlParse, body: {'Diviated_from_North': value.toString()});
-
-      if (response.statusCode == 200) {
-        print('Compass data sent successfully');
-      } else {
-        print('Failed to send Compass data to server : ${response.statusCode}');
-      }
-    }
-
-    Future<void> sendStepsToServer(String value) async {
-      var adres = '/pedometer/receive-data';
-      final URL = link+adres;
-      var urlParse = Uri.parse(URL);
-      final response = await http.post(urlParse, body: {'StepsValue ': value});
-
-      if (response.statusCode == 200) {
-        print('Pedometer data sent successfully');
-      } else {
-        print('Failed to send Pedometer data to server : ${response.statusCode}');
-      }
-    }
-
-
-
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Data from Sensors'),
+        title: Text(widget.title),
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Text('Accelerometer: $accelerometer'),
-              ],
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const SizedBox(height: 24),
+            StreamBuilder(
+              stream: _channel.stream,
+              builder: (context, snapshot) {
+                return Text(snapshot.hasData ? '${snapshot.data}' : '');
+              },
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Text('Gyroscope: $gyroscope'),
-              ],
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Text('Accelerometer: $accelerometer'),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Text('Magnetometer: $magnetometer'),
-              ],
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Text('Gyroscope: $gyroscope'),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Text('latitude , longitude: [ $lat , $long ]'),
-              ],
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Text('Magnetometer: $magnetometer'),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Text('LUX : [ $_luxString ]'),
-              ],
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Text('latitude , longitude: [ $lat , $long ]'),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Text('Diviation from North : [ $compassValue ]'),
-              ],
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Text('LUX : [ $_luxString ]'),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Text('Pedometer : [ $_steps ]'),
-              ],
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Text('Diviation from North : [ $compassValue ]'),
+                ],
+              ),
             ),
-          ),
-          ElevatedButton(
-            child: const Text("SEND"),
-            onPressed: () {
-              sendGyroDataToServer();
-              sendACCDataToServer();
-              sendMagDataToServer();
-              sendLocDataToServer();
-              sendLuxDataToServer(_luxString);
-              sendCompassDataToServer(compassValue);
-              sendStepsToServer(_steps);
-            },
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Text('Pedometer : [ $_steps ]'),
+                ],
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _scanner.scanForDevices();
+                setState(() {}); // Refresh the UI after scanning
+              },
+              child: Text('Scan for Devices'),
+            ),
+          ],
+        ),
       ),
+      // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+  void _sendMessage() {
+    List<String> nearbyDevicesList = _scanner.nearbyDevices;
+    final accelerometer ='\n'
+    'acc :${_accelerometerValues?.map((double v) => v.toStringAsFixed(1)).toList()}\n'
+    'gyro :${_gyroscopeValues?.map((double v) => v.toStringAsFixed(1)).toList()}\n'
+    'mag :${_magnetometerValues?.map((double v) => v.toStringAsFixed(1)).toList()}\n'
+    'lat :${lat.toString()}'
+    'long :${long.toString()}\n'
+    'lux :${_luxString.toString()}\n'
+    'compass :${compassValue.toString()}\n'
+        'Number of Bluetooth Devices available :${_scanner.nearbyDevices.length.toString()}\n'
+        'List of Bluetooth Devices available :${nearbyDevicesList}\n'
+    'pedo :${_steps.toString()}\n';
+
+    final jsonData = json.encode(accelerometer);
+    _channel.sink.add(jsonData);
+  }
+
   @override
   void dispose() {
+    _channel.sink.close();
+    _controller.dispose();
+
     super.dispose();
-    for (final subscription in _streamSubscriptions) {
-      subscription.cancel();
-    }
   }
 }

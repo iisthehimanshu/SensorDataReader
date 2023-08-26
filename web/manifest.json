@@ -1,6 +1,6 @@
 {
-    "name": "sensor_reader_prototype",
-    "short_name": "sensor_reader_prototype",
+    "name": "sensor_reader_prototype_websocket",
+    "short_name": "sensor_reader_prototype_websocket",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

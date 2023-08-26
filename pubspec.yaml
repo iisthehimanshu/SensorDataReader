@@ -1,4 +1,4 @@
-name: sensor_reader_prototype
+name: sensor_reader_prototype_websocket
 description: A new Flutter project.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -42,6 +42,8 @@ dependencies:
   light: ^3.0.1
   flutter_compass: ^0.7.0
   pedometer: ^4.0.1
+  web_socket_channel: ^2.4.0
+  permission_handler: ^10.4.3
 
 dev_dependencies:
   flutter_test:
