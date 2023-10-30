@@ -8,7 +8,7 @@
 PRODUCT_NAME = sensor_reader_prototype_websocket
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.sensorReaderPrototype
+PRODUCT_BUNDLE_IDENTIFIER = com.map.iwayplus;
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2023 com.example. All rights reserved.
